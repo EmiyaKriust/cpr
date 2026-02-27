@@ -1,0 +1,17 @@
+user.name=EmiyaKriust
+user.email=3175340548@qq.com
+gui.recentrepo=C:/Users/GfyXu/Desktop/CPR - 副本/CPR
+filter.lfs.clean=git-lfs clean -- %f
+filter.lfs.smudge=git-lfs smudge -- %f
+filter.lfs.process=git-lfs filter-process
+filter.lfs.required=true
+core.autocrlf=true
+core.compression=0
+difftool.sourcetree.cmd='' 
+mergetool.sourcetree.cmd='' 
+mergetool.sourcetree.trustexitcode=false
+mergetool.sourcetree.keepbackup=false
+http.postbuffer=2147483648
+http.lowspeedlimit=0
+http.lowspeedtime=999999
+http.version=HTTP/1.1

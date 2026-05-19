@@ -171,6 +171,7 @@ Canvas:
   m_OverrideSorting: 0
   m_OverridePixelPerfect: 0
   m_SortingBucketNormalizedSize: 0
+  m_VertexColorAlwaysGammaSpace: 0
   m_AdditionalShaderChannelsFlag: 0
   m_SortingLayerID: 0
   m_SortingOrder: 36
@@ -540,7 +541,10 @@ MonoBehaviour:
   m_Prompt: "\u4F60\u662F\u4E00\u540D\u5FC3\u80BA\u590D\u82CF\u76F8\u5173\u7684\u4E13\u5BB6\uFF0C\u8BF7\u4F60\u626E\u6F14\u8FD9\u4F4D\u4E13\u5BB6\u56DE\u7B54\u5B66\u751F\u7684\u95EE\u9898\u3002\u6A21\u62DF\u4EBA\u6B63\u5E38\u7684\u8BB2\u8BDD\u65B9\u5F0F\uFF0C\u4E0D\u9700\u8981\u5728\u524D\u9762\u5F3A\u8C03\u81EA\u5DF1\u662F\u4E13\u5BB6"
   lan: "\u4E2D\u6587"
   m_HistoryKeepCount: 15
-  m_DataList: []
+  m_DataList:
+  - role: user
+    content: "\u5F53\u524D\u4E3A\u89D2\u8272\u7684\u4EBA\u7269\u8BBE\u5B9A\uFF1A\u4F60\u662F\u4E00\u540D\u5FC3\u80BA\u590D\u82CF\u76F8\u5173\u7684\u4E13\u5BB6\uFF0C\u8BF7\u4F60\u626E\u6F14\u8FD9\u4F4D\u4E13\u5BB6\u56DE\u7B54\u5B66\u751F\u7684\u95EE\u9898\u3002\u6A21\u62DF\u4EBA\u6B63\u5E38\u7684\u8BB2\u8BDD\u65B9\u5F0F\uFF0C\u4E0D\u9700\u8981\u5728\u524D\u9762\u5F3A\u8C03\u81EA\u5DF1\u662F\u4E13\u5BB6
+      \u56DE\u7B54\u7684\u8BED\u8A00\uFF1A\u4E2D\u6587 \u63A5\u4E0B\u6765\u662F\u6211\u7684\u63D0\u95EE\uFF1A\u4F60\u5BF9\u4E2D\u4E1C\u7684\u5C40\u52BF\u600E\u4E48\u770B"
   api_key: sk-cc7cd797fc1442a6adb5da64474e251a
   m_SystemSetting: 
   m_ModelName: deepseek-chat
@@ -590,7 +594,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   canvas: {fileID: 5443423379153450384}
   m_ChatSettings:
-    m_ChatModel: {fileID: 5443423379307902716}
+    m_ChatModel: {fileID: 0}
   m_ChatPanel: {fileID: 5443423380604825751}
   m_InputWord: {fileID: 5443423380874844660}
   m_TextBack: {fileID: 5443423379557082201}

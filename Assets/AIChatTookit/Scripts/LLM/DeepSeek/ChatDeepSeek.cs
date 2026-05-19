@@ -15,7 +15,7 @@ public class ChatDeepSeek : LLM
 	/// <summary>
 	/// api key
 	/// </summary>
-	[SerializeField] private string api_key;
+	[SerializeField] public string api_key;
 	/// <summary>
 	/// AI设定
 	/// </summary>
@@ -25,7 +25,7 @@ public class ChatDeepSeek : LLM
 	/// </summary>
 	public string m_ModelName = "deepseek-chat";
 
-	private void Start()
+	public void Start()
 	{
 		//运行时，添加AI设定
 		m_DataList.Add(new SendData("system", m_SystemSetting));

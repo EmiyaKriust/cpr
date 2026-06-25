@@ -186,7 +186,7 @@ public class Buletooth : MonoBehaviour
 
     void OnScanEnded(BluetoothHelper helper, LinkedList<BluetoothDevice> devices)
     {
-        Log("扫描成功");
+        Log("Scan successful.");
         string names = "";
         LinkedListNode<BluetoothDevice> node = devices.First;
         for (int i = 0; i < 30; i++)
@@ -198,9 +198,9 @@ public class Buletooth : MonoBehaviour
 
             if (bluetoothName == "XM-15")
             {
-                // 设置连接的设备名字
+                // Please set the name of the connected device.
                 m_helper.setDeviceName(bluetoothName);
-                // 开始连接
+                // Starting connection.
                 m_helper.Connect();
                 break;
             }
@@ -208,7 +208,7 @@ public class Buletooth : MonoBehaviour
             if (node == null)
                 break;
         }
-        Log("扫描设备名称：" + names);
+        Log("Scanning for device names：" + names);
     }
 
     void OnConnected(BluetoothHelper helper)

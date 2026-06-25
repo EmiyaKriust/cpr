@@ -1,9 +1,12 @@
 using System.Collections;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.UI;
 
 public class AutoAdsorptiontoEdge : MonoBehaviour, IPointerClickHandler, IBeginDragHandler, IDragHandler, IEndDragHandler
 {
+    // ä»…æœ¬æ¬¡è¿è¡Œæœ‰æ•ˆï¼Œé‡å¯è½¯ä»¶åé‡ç½®
+    private static bool _disclaimerAccepted = false;
 
     private RectTransform popupTransform;
     public GameObject canvasPlane;
@@ -12,8 +15,13 @@ public class AutoAdsorptiontoEdge : MonoBehaviour, IPointerClickHandler, IBeginD
 
     private Vector2 halfSize;
 
-    // ĞÂÔö±êÖ¾Î»£¬ÓÃÓÚÅĞ¶ÏÊÇ·ñ·¢ÉúÁËÍÏ¶¯
     private bool hasDragged = false;
+
+    [Header("å…è´£å£°æ˜ä¸èŠå¤©é¢æ¿")]
+    public GameObject disclaimerPanel;
+    public GameObject chatPanel;
+    public Button disclaimerAcceptBtn;
+    public Button disclaimerCancelBtn;
 
     void Awake()
     {
@@ -24,6 +32,11 @@ public class AutoAdsorptiontoEdge : MonoBehaviour, IPointerClickHandler, IBeginD
     {
         halfSize = popupTransform.sizeDelta * 0.5f * popupTransform.root.localScale.x;
         Init();
+
+        if (disclaimerAcceptBtn != null)
+            disclaimerAcceptBtn.onClick.AddListener(OnDisclaimerAccept);
+        if (disclaimerCancelBtn != null)
+            disclaimerCancelBtn.onClick.AddListener(OnDisclaimerCancel);
     }
 
     public void Init()
@@ -34,20 +47,58 @@ public class AutoAdsorptiontoEdge : MonoBehaviour, IPointerClickHandler, IBeginD
 
     public void OnPointerClick(PointerEventData data)
     {
-        // Ö»ÓĞÔÚÃ»ÓĞÍÏ¶¯µÄÇé¿öÏÂ²Å´¦Àíµã»÷ÊÂ¼ş
         if (!hasDragged)
         {
-            canvasPlane.SetActive(true);
-            this.gameObject.SetActive(false);
+            if (_disclaimerAccepted)
+            {
+                // å·²æ¥å—å…è´£å£°æ˜ï¼šç›´æ¥æ‰“å¼€èŠå¤©ï¼Œéšè—æ°”æ³¡
+                OpenChat();
+            }
+            else
+            {
+                // æœªæ¥å—ï¼šæ˜¾ç¤ºå…è´£å£°æ˜é¢æ¿ï¼Œæ°”æ³¡ä¿æŒå¯è§
+                canvasPlane.SetActive(true);
+                if (disclaimerPanel != null)
+                    disclaimerPanel.SetActive(true);
+                if (chatPanel != null)
+                    chatPanel.SetActive(false);
+            }
         }
-        // ÖØÖÃÍÏ¶¯±êÖ¾Î»
         hasDragged = false;
+    }
+
+    private void OnDisclaimerAccept()
+    {
+        _disclaimerAccepted = true;
+
+        if (disclaimerPanel != null)
+            disclaimerPanel.SetActive(false);
+
+        OpenChat();
+    }
+
+    private void OnDisclaimerCancel()
+    {
+        Debug.Log("[Disclaimer] Cancel clicked, hiding panel and canvas");
+        if (disclaimerPanel != null)
+            disclaimerPanel.SetActive(false);
+        canvasPlane.SetActive(false);
+    }
+
+    private void OpenChat()
+    {
+        canvasPlane.SetActive(true);
+        if (disclaimerPanel != null)
+            disclaimerPanel.SetActive(false);
+        if (chatPanel != null)
+            chatPanel.SetActive(true);
+        gameObject.SetActive(false);
     }
 
     public void OnBeginDrag(PointerEventData data)
     {
         isPopupBeingDragged = true;
-        hasDragged = true; // ¿ªÊ¼ÍÏ¶¯£¬ÉèÖÃ±êÖ¾Î»
+        hasDragged = true;
 
         if (moveToPosCoroutine != null)
         {

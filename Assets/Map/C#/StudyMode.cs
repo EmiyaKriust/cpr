@@ -341,6 +341,7 @@ public class StudyMode : MonoBehaviour
 
     public IEnumerator CheckTR()
     {
+   
         yield return null;
         massagePanel.SetActive(true);
         massagePanel_2.SetActive(true);

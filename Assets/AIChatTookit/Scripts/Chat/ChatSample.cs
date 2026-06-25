@@ -8,39 +8,24 @@ using WebGLSupport;
 public class ChatSample : MonoBehaviour
 {
     public GameObject canvas;
-    /// <summary>
-    /// 聊天配置
-    /// </summary>
+
     [SerializeField] private ChatSetting m_ChatSettings;
-    #region UI定义
-    /// <summary>
-    /// 聊天UI窗
-    /// </summary>
+
+    #region UI
+
     [SerializeField] private GameObject m_ChatPanel;
-    /// <summary>
-    /// 输入的信息
-    /// </summary>
+
     [SerializeField] public InputField m_InputWord;
-    /// <summary>
-    /// 返回的信息
-    /// </summary>
+
     [SerializeField] private Text m_TextBack;
-    /// <summary>
-    /// 发送信息按钮
-    /// </summary>
+
     [SerializeField] private Button m_CommitMsgBtn;
 
     #endregion
 
-    #region 参数定义
-    /// <summary>
-    /// 语音模式，设置为false,则不通过语音合成
-    /// </summary>
 
-    [Header("勾选则不发送LLM，直接合成输入文字")]
     [SerializeField] private bool m_CreateVoiceMode = false;
 
-    #endregion
 
     private void Awake()
     {
@@ -49,11 +34,8 @@ public class ChatSample : MonoBehaviour
         InputSettingWhenWebgl();
     }
 
-    #region 消息发送
+    #region
 
-    /// <summary>
-    /// webgl时处理，支持中文输入
-    /// </summary>
     private void InputSettingWhenWebgl()
     {
 #if UNITY_WEBGL
@@ -61,82 +43,58 @@ public class ChatSample : MonoBehaviour
 #endif
     }
 
-
-    /// <summary>
-    /// 发送信息
-    /// </summary>
     public void SendData()
     {
         if (m_InputWord.text.Equals(""))
             return;
-        //添加记录聊天
+
         m_ChatHistory.Add(m_InputWord.text);
-        //提示词
+
         string _msg = m_InputWord.text;
 
-        //发送数据
         m_ChatSettings.m_ChatModel.PostMsg(_msg, CallBack);
 
         m_InputWord.text = "";
         m_TextBack.text = "Thinking...";
-
     }
-    /// <summary>
-    /// 带文字发送
-    /// </summary>
-    /// <param name="_postWord"></param>
+
     public void SendData(string _postWord)
     {
         if (_postWord.Equals(""))
             return;
-        //添加记录聊天
+
         m_ChatHistory.Add(_postWord);
-        //提示词
+
         string _msg = _postWord;
 
-        //发送数据
         m_ChatSettings.m_ChatModel.PostMsg(_msg, CallBack);
 
         m_InputWord.text = "";
         m_TextBack.text = "Thinking...";
-
     }
 
-    /// <summary>
-    /// AI回复的信息的回调
-    /// </summary>
-    /// <param name="_response"></param>
     private void CallBack(string _response)
     {
         _response = _response.Trim();
         m_TextBack.text = "";
 
-        
-        Debug.Log("收到AI回复："+ _response);
+        Debug.Log("AI: " + _response);
 
-        //记录聊天
         m_ChatHistory.Add(_response);
 
-     
-            //开始逐个显示返回的文本
         StartTypeWords(_response);
         return;
-        
     }
 
-#endregion
+    #endregion
 
 
-#region 文字逐个显示
-    //逐字显示的时间间隔
-    [SerializeField] private float m_WordWaitTime = 0.2f;
-    //是否显示完成
+    #region
+
+    [SerializeField] private float m_WordWaitTime = 0.03f;
+
     [SerializeField] private bool m_WriteState = false;
 
-    /// <summary>
-    /// 开始逐个打印
-    /// </summary>
-    /// <param name="_msg"></param>
     private void StartTypeWords(string _msg)
     {
         if (_msg == "")
@@ -149,36 +107,38 @@ public class ChatSample : MonoBehaviour
     private IEnumerator SetTextPerWord(string _msg)
     {
         int currentPos = 0;
+        int charsPerTick = Mathf.Max(1, _msg.Length / 60);
+
         while (m_WriteState)
         {
             yield return new WaitForSeconds(m_WordWaitTime);
-            currentPos++;
-            //更新显示的内容
+            currentPos += charsPerTick;
+            if (currentPos > _msg.Length)
+                currentPos = _msg.Length;
+
             m_TextBack.text = _msg.Substring(0, currentPos);
-
             m_WriteState = currentPos < _msg.Length;
-
         }
     }
 
-#endregion
+    #endregion
 
-#region 聊天记录
-    //保存聊天记录
+    #region
+
     [SerializeField] private List<string> m_ChatHistory;
-    //缓存已创建的聊天气泡
+
     [SerializeField] private List<GameObject> m_TempChatBox;
-    //聊天记录显示层
+
     [SerializeField] private GameObject m_HistoryPanel;
-    //聊天文本放置的层
+
     [SerializeField] private RectTransform m_rootTrans;
-    //发送聊天气泡
+
     [SerializeField] private ChatPrefab m_PostChatPrefab;
-    //回复的聊天气泡
+
     [SerializeField] private ChatPrefab m_RobotChatPrefab;
-    //滚动条
+
     [SerializeField] private ScrollRect m_ScroTectObject;
-    //获取聊天记录
+
     public void OpenAndGetHistory()
     {
         m_ChatPanel.SetActive(false);
@@ -187,14 +147,13 @@ public class ChatSample : MonoBehaviour
         ClearChatBox();
         StartCoroutine(GetHistoryChatInfo());
     }
-    //返回
+
     public void BackChatMode()
     {
         m_ChatPanel.SetActive(true);
         m_HistoryPanel.SetActive(false);
     }
 
-    //清空已创建的对话框
     private void ClearChatBox()
     {
         while (m_TempChatBox.Count != 0)
@@ -208,10 +167,8 @@ public class ChatSample : MonoBehaviour
         m_TempChatBox.Clear();
     }
 
-    //获取聊天记录列表
     private IEnumerator GetHistoryChatInfo()
     {
-
         yield return new WaitForEndOfFrame();
 
         for (int i = 0; i < m_ChatHistory.Count; i++)
@@ -229,7 +186,6 @@ public class ChatSample : MonoBehaviour
             m_TempChatBox.Add(_reChat.gameObject);
         }
 
-        //重新计算容器尺寸
         LayoutRebuilder.ForceRebuildLayoutImmediate(m_rootTrans);
         StartCoroutine(TurnToLastLine());
     }
@@ -237,12 +193,9 @@ public class ChatSample : MonoBehaviour
     private IEnumerator TurnToLastLine()
     {
         yield return new WaitForEndOfFrame();
-        //滚动到最近的消息
+
         m_ScroTectObject.verticalNormalizedPosition = 0;
     }
 
-
-#endregion
-
-  
+    #endregion
 }

@@ -8,61 +8,87 @@ using UnityEngine.Networking;
 
 public class ChatDeepSeekRAG : ChatDeepSeek
 {
-    [Header("RAG ÅäÖÃ")]
-    [Tooltip("¼ìË÷µÄ×îÏà¹ØÖªÊ¶µãÊıÁ¿")]
+    [Header("RAG è®¾ç½®")]
+    [Tooltip("æ£€ç´¢æ—¶è¿”å›çš„æœ€ç›¸å…³çŸ¥è¯†ç‚¹æ•°é‡ï¼ˆæ¯ä¸ªçŸ¥è¯†åº“å„å– topK æ¡ï¼‰")]
     public int topK = 3;
-    [Tooltip("ÖªÊ¶¿âÎÄ±¾ÎÄ¼ş£¨Ã¿ĞĞÒ»¸öÖªÊ¶µã£©")]
+    [Tooltip("æœ€ä½ç›¸ä¼¼åº¦é˜ˆå€¼ï¼ˆ0~1ï¼‰ã€‚æœ€ä½³åŒ¹é…ä½äºæ­¤å€¼æ—¶ï¼Œæ‹’ç­”å¹¶æç¤ºçŸ¥è¯†åº“æ— æ­¤å†…å®¹")]
+    public float minSimilarityThreshold = 0.35f;
+    [Tooltip("ä½ç½®ä¿¡åº¦é˜ˆå€¼ï¼ˆ0~1ï¼‰ã€‚æœ€ä½³åŒ¹é…ä½äºæ­¤å€¼ä½†é«˜äºæœ€ä½é˜ˆå€¼æ—¶ï¼Œé™„åŠ 'ä»…ä¾›å‚è€ƒ'æç¤º")]
+    public float lowConfidenceThreshold = 0.50f;
+    [Tooltip("çŸ¥è¯†åº“æ–‡æœ¬æ–‡ä»¶ï¼ˆè‹±æ–‡ï¼‰ï¼Œæ¯è¡Œä¸€ä¸ªçŸ¥è¯†ç‚¹")]
     public TextAsset knowledgeBaseText;
-    [Tooltip("DashScope API Key£¨ÓÃÓÚÎÄ±¾ÏòÁ¿»¯£©")]
+    [Tooltip("çŸ¥è¯†åº“æ–‡æœ¬æ–‡ä»¶ï¼ˆä¸­æ–‡ï¼‰ï¼Œæ¯è¡Œä¸€ä¸ªçŸ¥è¯†ç‚¹")]
+    public TextAsset knowledgeBaseTextZh;
+    [Tooltip("DashScope API Keyï¼Œç”¨äºæ–‡æœ¬å‘é‡åŒ–")]
     public string dashscopeApiKey;
 
-    // ±¾µØÏòÁ¿ÖªÊ¶¿â
+    // æœ¬åœ°ç¼“å­˜çš„çŸ¥è¯†åº“ï¼ˆè‹±æ–‡ + ä¸­æ–‡ï¼‰
     private List<KnowledgeItem> embeddedKnowledgeBase = new List<KnowledgeItem>();
+    private List<KnowledgeItem> embeddedKnowledgeBaseZh = new List<KnowledgeItem>();
     private string embeddingUrl = "https://dashscope.aliyuncs.com/api/v1/services/embeddings/text-embedding/text-embedding";
 
     IEnumerator Start()
     {
-        // ÏÈµ÷ÓÃ»ùÀà Start£¨»áÌí¼Ó system ÌáÊ¾´Ê£¬Èç¹ûÓĞ m_SystemSetting£©
-        // ×¢Òâ£ºLLM »ùÀàÃ»ÓĞ Start£¬µ« ChatDeepSeek Ò²Ã»ÓĞ£¬ËùÒÔ¿ÉÒÔ²»µ÷ÓÃ base.Start
-        // µ«ÈôÄãÏ£ÍûÔÚ¿ªÊ¼Ê±Ìí¼Ó system ÏûÏ¢£¬¿ÉÒÔÔÚÕâÀïÊÖ¶¯Ìí¼Ó
         if (!string.IsNullOrEmpty(m_Prompt))
         {
             m_DataList.Add(new SendData("system", m_Prompt));
         }
 
-        if (knowledgeBaseText == null)
+        if (knowledgeBaseText == null && knowledgeBaseTextZh == null)
             yield break;
 
-        // ³¢ÊÔ´Ó±¾µØ»º´æ¼ÓÔØ
+        // ä¼˜å…ˆä»æœ¬åœ°ç¼“å­˜åŠ è½½
         if (LoadKnowledgeFromFile())
             yield break;
 
-        // Ã»ÓĞ»º´æÔòÏòÁ¿»¯ÖªÊ¶¿â
-        string[] lines = knowledgeBaseText.text.Split('\n');
-        int validCount = 0;
-        foreach (string line in lines)
+        // æ²¡æœ‰ç¼“å­˜åˆ™å‘é‡åŒ–è‹±æ–‡çŸ¥è¯†åº“
+        if (knowledgeBaseText != null)
         {
-            if (string.IsNullOrWhiteSpace(line))
-                continue;
-
-            validCount++;
-            float[] emb = null;
-            yield return StartCoroutine(GetEmbedding(line, true, (e) => emb = e));
-            if (emb != null)
+            string[] lines = knowledgeBaseText.text.Split('\n');
+            foreach (string line in lines)
             {
-                embeddedKnowledgeBase.Add(new KnowledgeItem { text = line, embedding = emb });
-                Debug.Log($"ÒÑÏòÁ¿»¯: {line}");
+                if (string.IsNullOrWhiteSpace(line))
+                    continue;
+
+                float[] emb = null;
+                yield return StartCoroutine(GetEmbedding(line, true, (e) => emb = e));
+                if (emb != null)
+                {
+                    embeddedKnowledgeBase.Add(new KnowledgeItem { text = line, embedding = emb });
+                    Debug.Log($"[EN] å‘é‡åŒ–å®Œæˆ: {line.Substring(0, Math.Min(line.Length, 60))}...");
+                }
             }
+            Debug.Log($"è‹±æ–‡çŸ¥è¯†åº“å‘é‡åŒ–å®Œæˆï¼Œå…± {embeddedKnowledgeBase.Count} æ¡");
         }
 
-        if (embeddedKnowledgeBase.Count > 0)
+        // å‘é‡åŒ–ä¸­æ–‡çŸ¥è¯†åº“
+        if (knowledgeBaseTextZh != null)
+        {
+            string[] lines = knowledgeBaseTextZh.text.Split('\n');
+            foreach (string line in lines)
+            {
+                if (string.IsNullOrWhiteSpace(line))
+                    continue;
+
+                float[] emb = null;
+                yield return StartCoroutine(GetEmbedding(line, true, (e) => emb = e));
+                if (emb != null)
+                {
+                    embeddedKnowledgeBaseZh.Add(new KnowledgeItem { text = line, embedding = emb });
+                    Debug.Log($"[ZH] å‘é‡åŒ–å®Œæˆ: {line.Substring(0, Math.Min(line.Length, 60))}...");
+                }
+            }
+            Debug.Log($"ä¸­æ–‡çŸ¥è¯†åº“å‘é‡åŒ–å®Œæˆï¼Œå…± {embeddedKnowledgeBaseZh.Count} æ¡");
+        }
+
+        if (embeddedKnowledgeBase.Count > 0 || embeddedKnowledgeBaseZh.Count > 0)
         {
             SaveKnowledgeToFile();
-            Debug.Log($"ÖªÊ¶¿âÏòÁ¿»¯Íê³É£¬¹² {embeddedKnowledgeBase.Count} Ìõ");
+            Debug.Log($"åŒçŸ¥è¯†åº“å‘é‡åŒ–å…¨éƒ¨å®Œæˆ: EN={embeddedKnowledgeBase.Count}æ¡, ZH={embeddedKnowledgeBaseZh.Count}æ¡");
         }
     }
 
-    // ÖØĞ´·¢ËÍÏûÏ¢£¬ÏÈ¼ìË÷ÔÙÔöÇ¿
+    // é‡å†™å‘é€æ¶ˆæ¯ï¼Œå…ˆæ£€ç´¢å¢å¼º
     public override void PostMsg(string _msg, Action<string> _callback)
     {
         StartCoroutine(PostMsgWithRAG(_msg, _callback));
@@ -70,38 +96,72 @@ public class ChatDeepSeekRAG : ChatDeepSeek
 
     private IEnumerator PostMsgWithRAG(string _msg, Action<string> _callback)
     {
-        // 1. ÏòÁ¿»¯ÓÃ»§ÎÊÌâ
+        // 1. å‘é‡åŒ–ç”¨æˆ·é—®é¢˜
         float[] queryEmb = null;
         yield return StartCoroutine(GetEmbedding(_msg, false, (e) => queryEmb = e));
 
         if (queryEmb == null)
         {
-            Debug.LogError("ÎÊÌâÏòÁ¿»¯Ê§°Ü£¬½µ¼¶ÎªÆÕÍ¨ÁÄÌì");
-            base.PostMsg(_msg, _callback);   // µ÷ÓÃ»ùÀà LLM µÄ PostMsg£¨´øÈËÎïÉè¶¨£©
+            Debug.LogError("æŸ¥è¯¢å‘é‡åŒ–å¤±è´¥ï¼Œé™çº§ä¸ºæ™®é€šå¯¹è¯");
+            base.PostMsg(_msg, _callback);
             yield break;
         }
 
-        // 2. ¼ìË÷Ïà¹ØÖªÊ¶
-        List<KnowledgeItem> relevant = SearchRelevant(queryEmb, topK);
+        // 2. æ£€ç´¢ä¸¤ä¸ªçŸ¥è¯†åº“ï¼Œå¸¦ç›¸ä¼¼åº¦åˆ†æ•°
+        List<KnowledgeItem> relevantEn = SearchRelevant(queryEmb, embeddedKnowledgeBase, topK);
+        List<KnowledgeItem> relevantZh = SearchRelevant(queryEmb, embeddedKnowledgeBaseZh, topK);
 
-        // 3. ¹¹½¨ÔöÇ¿ÏûÏ¢£¬±£ÁôÈËÎïÉè¶¨ºÍÓïÑÔÒªÇó
-        string enhancedMsg = BuildEnhancedMessage(_msg, relevant);
+        // 3. åˆå¹¶å»é‡ï¼ŒæŒ‰ç›¸ä¼¼åº¦æ’åº
+        List<KnowledgeItem> allRelevant = new List<KnowledgeItem>();
+        allRelevant.AddRange(relevantEn);
+        allRelevant.AddRange(relevantZh);
+        allRelevant = allRelevant
+            .OrderByDescending(item => CosineSimilarity(queryEmb, item.embedding))
+            .Take(topK * 2)
+            .ToList();
 
-        // 4. ½«ÔöÇ¿ÏûÏ¢¼ÓÈëÀúÊ·£¨×÷Îª user ÏûÏ¢£©
+        // 4. è®¡ç®—æœ€ä½³åŒ¹é…çš„ç›¸ä¼¼åº¦
+        float bestScore = 0f;
+        foreach (var item in allRelevant)
+        {
+            float s = CosineSimilarity(queryEmb, item.embedding);
+            if (s > bestScore) bestScore = s;
+        }
+
+        Debug.Log($"[RAG] æ£€ç´¢åˆ° {allRelevant.Count} æ¡ç›¸å…³çŸ¥è¯†ç‚¹ï¼Œæœ€ä½³ç›¸ä¼¼åº¦={bestScore:F3}");
+
+        // 5. ç½®ä¿¡åº¦åˆ¤æ–­â€”â€”ä¸‰çº§åˆ†æµ
+        if (allRelevant.Count == 0 || bestScore < minSimilarityThreshold)
+        {
+            // æ— æ³•åŒ¹é…ï¼šä¸è°ƒ LLMï¼Œç›´æ¥è¿”å›æ‹’ç­”æç¤º
+            string rejectMsg = GetRejectMessage();
+            Debug.Log($"[RAG] ç½®ä¿¡åº¦è¿‡ä½ï¼ˆ{bestScore:F3} < {minSimilarityThreshold}ï¼‰ï¼Œæ‹’ç­”");
+            m_DataList.Add(new SendData("user", _msg));
+            m_DataList.Add(new SendData("assistant", rejectMsg));
+            CheckHistory();
+            _callback(rejectMsg);
+            yield break;
+        }
+
+        // 6. æ„å»ºå¢å¼ºæ¶ˆæ¯
+        bool isLowConfidence = bestScore < lowConfidenceThreshold;
+        string enhancedMsg = BuildEnhancedMessage(_msg, allRelevant, isLowConfidence);
+
+        // 7. å°†å¢å¼ºæ¶ˆæ¯åŠ å…¥å†å²è®°å½•
         m_DataList.Add(new SendData("user", enhancedMsg));
-        CheckHistory();   // Î¬³ÖÉÏÏÂÎÄ³¤¶È
+        CheckHistory();
 
-        // 5. µ÷ÓÃ DeepSeek µÄ Request
+        // 8. è°ƒç”¨ DeepSeek
         yield return StartCoroutine(Request(enhancedMsg, _callback));
     }
 
-    // ÓàÏÒÏàËÆ¶È¼ìË÷
-    private List<KnowledgeItem> SearchRelevant(float[] queryEmb, int k)
+    // ä½™å¼¦ç›¸ä¼¼åº¦æ£€ç´¢
+    private List<KnowledgeItem> SearchRelevant(float[] queryEmb, List<KnowledgeItem> kb, int k)
     {
-        if (embeddedKnowledgeBase.Count == 0)
+        if (kb == null || kb.Count == 0)
             return new List<KnowledgeItem>();
 
-        return embeddedKnowledgeBase
+        return kb
             .Select(item => new { item, score = CosineSimilarity(queryEmb, item.embedding) })
             .OrderByDescending(x => x.score)
             .Take(k)
@@ -111,7 +171,7 @@ public class ChatDeepSeekRAG : ChatDeepSeek
 
     private float CosineSimilarity(float[] a, float[] b)
     {
-        if (a.Length != b.Length) return 0;
+        if (a == null || b == null || a.Length != b.Length) return 0;
         float dot = 0, magA = 0, magB = 0;
         for (int i = 0; i < a.Length; i++)
         {
@@ -124,17 +184,44 @@ public class ChatDeepSeekRAG : ChatDeepSeek
         return (magA == 0 || magB == 0) ? 0 : dot / (magA * magB);
     }
 
-    private string BuildEnhancedMessage(string userQuery, List<KnowledgeItem> retrieved)
+    private string BuildEnhancedMessage(string userQuery, List<KnowledgeItem> retrieved, bool isLowConfidence = false)
     {
         string context = retrieved.Count > 0
             ? string.Join("\n", retrieved.Select(i => i.text))
-            : "ÔİÎŞÏà¹ØÒÑÖªĞÅÏ¢¡£";
+            : "æœªæ£€ç´¢åˆ°ç›¸å…³ä¿¡æ¯ã€‚";
 
-        // ¸´ÓÃ»ùÀàµÄÈËÎïÉè¶¨ºÍÓïÑÔ×Ö¶Î
-        return $"{m_Prompt}\n»Ø´ğÓïÑÔ£º{lan}\nÇëÑÏ¸ñ¸ù¾İÒÔÏÂÒÑÖªĞÅÏ¢»Ø´ğÎÊÌâ¡£Èç¹ûÎŞ·¨¸ù¾İÒÑÖªĞÅÏ¢ÕÒµ½´ğ°¸£¬ÇëÖ±½ÓËµÃ÷¡°Õâ¸öÎÊÌâÎÒ»¹²»ÖªµÀ¡±£¬²»Òª±àÔìÄÚÈİ¡£\n\nÒÑÖªĞÅÏ¢£º\n{context}\n\nÎÊÌâ£º{userQuery}";
+        string lowConfWarning = isLowConfidence
+            ? "\nã€æé†’ã€‘ä»¥ä¸‹å·²çŸ¥ä¿¡æ¯ä¸ç”¨æˆ·é—®é¢˜çš„åŒ¹é…åº¦è¾ƒä½ï¼Œç­”æ¡ˆä»…ä¾›å‚è€ƒï¼Œè¯·è°¨æ…åˆ¤æ–­å…¶å¯é æ€§ã€‚\n"
+            : "";
+
+        // è‡ªåŠ¨æ£€æµ‹ç”¨æˆ·è¯­è¨€ï¼šä¸­æ–‡æé—®ç”¨ä¸­æ–‡å›ç­”ï¼Œè‹±æ–‡æé—®ç”¨è‹±æ–‡å›ç­”
+        string responseLan = DetectLanguage(userQuery);
+
+        return $"{m_Prompt}\nå›ç­”è¯­è¨€ï¼š{responseLan}\nè¯·ä¸¥æ ¼æ ¹æ®ä»¥ä¸‹å·²çŸ¥ä¿¡æ¯å›ç­”é—®é¢˜ã€‚å¦‚æœæ— æ³•ä»å·²çŸ¥ä¿¡æ¯ä¸­æ‰¾åˆ°ç­”æ¡ˆï¼Œè¯·ç›´æ¥è¯´æ˜æ ¹æ®å½“å‰å·²çŸ¥çŸ¥è¯†åº“æ— æ³•å›ç­”ï¼Œä¸è¦è‡ªè¡Œç¼–é€ å†…å®¹ã€‚\n{lowConfWarning}\nå·²çŸ¥ä¿¡æ¯ï¼š\n{context}\n\né—®é¢˜ï¼š{userQuery}";
     }
 
-    // µ÷ÓÃ DashScope ÎÄ±¾ÏòÁ¿ API
+    /// <summary>
+    /// æ£€æµ‹æ–‡æœ¬æ˜¯å¦ä¸ºä¸­æ–‡ï¼ˆå«ä¸­æ–‡å­—ç¬¦åˆ™ä¸ºä¸­æ–‡ï¼Œå¦åˆ™ä¸ºè‹±æ–‡ï¼‰
+    /// </summary>
+    private string DetectLanguage(string text)
+    {
+        foreach (char c in text)
+        {
+            if (c >= 0x4E00 && c <= 0x9FFF)
+                return "ä¸­æ–‡";
+        }
+        return "English";
+    }
+
+    /// <summary>
+    /// çŸ¥è¯†åº“æ— æ³•åŒ¹é…æ—¶è¿”å›çš„æ ‡å‡†æ‹’ç­”æç¤ºï¼ˆå«å…è´£å£°æ˜ï¼‰
+    /// </summary>
+    private string GetRejectMessage()
+    {
+        return "We apologise, but this information is not currently available in the knowledge base. We recommend consulting authoritative first-aid guidelines or seeking advice from a healthcare professional.";
+    }
+
+    // è°ƒç”¨ DashScope æ–‡æœ¬å‘é‡åŒ– API
     private IEnumerator GetEmbedding(string text, bool isDocument, Action<float[]> callback)
     {
         var reqBody = new EmbeddingRequest
@@ -145,7 +232,7 @@ public class ChatDeepSeekRAG : ChatDeepSeek
         };
 
         string json = JsonUtility.ToJson(reqBody);
-        Debug.Log($"[Embedding] ÇëÇó: {json}");
+        Debug.Log($"[Embedding] è¯·æ±‚: {json}");
 
         using (UnityWebRequest request = new UnityWebRequest(embeddingUrl, "POST"))
         {
@@ -160,7 +247,7 @@ public class ChatDeepSeekRAG : ChatDeepSeek
             if (request.result == UnityWebRequest.Result.Success)
             {
                 string respText = request.downloadHandler.text;
-                Debug.Log($"[Embedding] ÏìÓ¦: {respText}");
+                Debug.Log($"[Embedding] å“åº”: {respText}");
                 try
                 {
                     var resp = JsonUtility.FromJson<EmbeddingResponse>(respText);
@@ -170,30 +257,34 @@ public class ChatDeepSeekRAG : ChatDeepSeek
                     }
                     else
                     {
-                        Debug.LogError($"Embedding Êı¾İÎª¿Õ: {respText}");
+                        Debug.LogError($"Embedding è¿”å›ä¸ºç©º: {respText}");
                         callback?.Invoke(null);
                     }
                 }
                 catch (Exception e)
                 {
-                    Debug.LogError($"½âÎö Embedding ÏìÓ¦³ö´í: {e.Message}");
+                    Debug.LogError($"è§£æ Embedding å“åº”å¼‚å¸¸: {e.Message}");
                     callback?.Invoke(null);
                 }
             }
             else
             {
-                Debug.LogError($"Embedding ÇëÇóÊ§°Ü: {request.responseCode}\n{request.downloadHandler.text}");
+                Debug.LogError($"Embedding è¯·æ±‚å¤±è´¥: {request.responseCode}\n{request.downloadHandler.text}");
                 callback?.Invoke(null);
             }
         }
     }
 
-    // --- ±¾µØ»º´æ ---
+    // --- æœ¬åœ°ç¼“å­˜ ---
     private string GetCachePath() => Path.Combine(Application.persistentDataPath, "knowledge_cache.json");
 
     private void SaveKnowledgeToFile()
     {
-        var db = new KnowledgeDB { items = embeddedKnowledgeBase };
+        var db = new KnowledgeDB
+        {
+            items = embeddedKnowledgeBase,
+            itemsZh = embeddedKnowledgeBaseZh
+        };
         string json = JsonUtility.ToJson(db);
         File.WriteAllText(GetCachePath(), json);
     }
@@ -205,16 +296,25 @@ public class ChatDeepSeekRAG : ChatDeepSeek
 
         string json = File.ReadAllText(path);
         var db = JsonUtility.FromJson<KnowledgeDB>(json);
-        if (db?.items != null && db.items.Count > 0)
+        if (db == null) return false;
+
+        bool loaded = false;
+        if (db.items != null && db.items.Count > 0)
         {
             embeddedKnowledgeBase = db.items;
-            Debug.Log($"´Ó»º´æ¼ÓÔØÁË {embeddedKnowledgeBase.Count} ÌõÖªÊ¶ÏòÁ¿");
-            return true;
+            Debug.Log($"ä»ç¼“å­˜åŠ è½½è‹±æ–‡çŸ¥è¯†åº“ {embeddedKnowledgeBase.Count} æ¡");
+            loaded = true;
         }
-        return false;
+        if (db.itemsZh != null && db.itemsZh.Count > 0)
+        {
+            embeddedKnowledgeBaseZh = db.itemsZh;
+            Debug.Log($"ä»ç¼“å­˜åŠ è½½ä¸­æ–‡çŸ¥è¯†åº“ {embeddedKnowledgeBaseZh.Count} æ¡");
+            loaded = true;
+        }
+        return loaded;
     }
 
-    #region ÄÚ²¿Êı¾İ½á¹¹
+    #region å†…éƒ¨æ•°æ®ç»“æ„
     [Serializable]
     private class KnowledgeItem
     {
@@ -225,7 +325,8 @@ public class ChatDeepSeekRAG : ChatDeepSeek
     [Serializable]
     private class KnowledgeDB
     {
-        public List<KnowledgeItem> items;
+        public List<KnowledgeItem> items;      // è‹±æ–‡çŸ¥è¯†åº“
+        public List<KnowledgeItem> itemsZh;    // ä¸­æ–‡çŸ¥è¯†åº“
     }
 
     [Serializable]

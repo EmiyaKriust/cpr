@@ -2,67 +2,62 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Diagnostics.Contracts;
 using UnityEngine;
 
-public class LLM:MonoBehaviour
+public class LLM : MonoBehaviour
 {
-    /// <summary>
-    /// apiµØÖ·
-    /// </summary>
     [SerializeField] protected string url;
-    /// <summary>
-    /// ÌáÊ¾´Ê£¬ÓëÏûÏ¢Ò»Æğ·¢ËÍ
-    /// </summary>
-    [Header("·¢ËÍµÄÌáÊ¾´ÊÉè¶¨")]
-    [SerializeField] protected string m_Prompt = string.Empty;
-    /// <summary>
-    /// ÓïÑÔ
-    /// </summary
-    [Header("ÉèÖÃ»Ø¸´µÄÓïÑÔ")]
-    [SerializeField] protected string lan="ÖĞÎÄ";
-    /// <summary>
-    /// ÉÏÏÂÎÄ±£ÁôÌõÊı
-    /// </summary>
-    [Header("ÉÏÏÂÎÄ±£ÁôÌõÊı")]
-    [SerializeField] protected int m_HistoryKeepCount = 15;
-    /// <summary>
-    /// »º´æ¶Ô»°
-    /// </summary>
-    [SerializeField] public List<SendData> m_DataList = new List<SendData>();
-    /// <summary>
-    /// ¼ÆËã·½·¨µ÷ÓÃµÄÊ±¼ä
-    /// </summary>
-    [SerializeField] protected Stopwatch stopwatch=new Stopwatch();
-    /// <summary>
-    /// ·¢ËÍÏûÏ¢
-    /// </summary>
-    public virtual void PostMsg(string _msg,Action<string> _callback) {
-        //ÉÏÏÂÎÄÌõÊıÉèÖÃ
-        CheckHistory();
-        //ÌáÊ¾´Ê´¦Àí
-        string message = "µ±Ç°Îª½ÇÉ«µÄÈËÎïÉè¶¨£º" + m_Prompt +
-            " »Ø´ğµÄÓïÑÔ£º" + lan +
-            " ½ÓÏÂÀ´ÊÇÎÒµÄÌáÎÊ£º" + _msg;
 
-        //»º´æ·¢ËÍµÄĞÅÏ¢ÁĞ±í
+    [Header("å‘é€ç»™æ¨¡å‹çš„æç¤ºè¯è®¾å®š")]
+    [SerializeField] protected string m_Prompt = string.Empty;
+
+    [Header("é™å®šå›å¤è¯­è¨€ï¼ˆè®¾ä¸ºç©ºåˆ™ç”±ç³»ç»Ÿè‡ªåŠ¨æ£€æµ‹ï¼‰")]
+    [SerializeField] protected string lan = "";
+
+    [Header("ä¿ç•™çš„å†å²æ¡æ•°")]
+    [SerializeField] protected int m_HistoryKeepCount = 15;
+
+    [SerializeField] public List<SendData> m_DataList = new List<SendData>();
+
+    [SerializeField] protected Stopwatch stopwatch = new Stopwatch();
+
+    /// <summary>
+    /// æ ¹æ®ç”¨æˆ·è¾“å…¥è‡ªåŠ¨æ£€æµ‹è¯­è¨€ï¼šå«ä¸­æ–‡å­—ç¬¦åˆ™ç”¨ä¸­æ–‡å›ç­”ï¼Œå¦åˆ™ç”¨è‹±æ–‡
+    /// </summary>
+    private string DetectLanguage(string text)
+    {
+        foreach (char c in text)
+        {
+            if (c >= 0x4E00 && c <= 0x9FFF)
+                return "ä¸­æ–‡";
+        }
+        return "English";
+    }
+
+    public virtual void PostMsg(string _msg, Action<string> _callback)
+    {
+        CheckHistory();
+
+        // å¦‚æœ lan ä¸ºç©ºåˆ™è‡ªåŠ¨æ£€æµ‹ï¼Œå¦åˆ™ä½¿ç”¨æ‰‹åŠ¨æŒ‡å®šçš„è¯­è¨€
+        string responseLan = string.IsNullOrEmpty(lan) ? DetectLanguage(_msg) : lan;
+
+        string message = "å½“å‰ä¸ºè§’è‰²æ‰®æ¼”è®¾å®šï¼š" + m_Prompt +
+            " å›ç­”çš„è¯­è¨€ï¼š" + responseLan +
+            " ä»¥ä¸‹æ˜¯æˆ‘æå‡ºçš„é—®é¢˜ï¼š" + _msg;
+
         m_DataList.Add(new SendData("user", message));
 
         StartCoroutine(Request(message, _callback));
     }
 
-    public virtual IEnumerator Request(string _postWord, System.Action<string> _callback)
+    public virtual IEnumerator Request(string _postWord, Action<string> _callback)
     {
         yield return new WaitForEndOfFrame();
-          
     }
 
-    /// <summary>
-    /// ÉèÖÃ±£ÁôµÄÉÏÏÂÎÄÌõÊı£¬·ÀÖ¹Ì«³¤
-    /// </summary>
     public virtual void CheckHistory()
     {
-        if(m_DataList.Count> m_HistoryKeepCount)
+        if (m_DataList.Count > m_HistoryKeepCount)
         {
             m_DataList.RemoveAt(0);
         }
@@ -73,13 +68,13 @@ public class LLM:MonoBehaviour
     {
         [SerializeField] public string role;
         [SerializeField] public string content;
+
         public SendData() { }
+
         public SendData(string _role, string _content)
         {
             role = _role;
             content = _content;
         }
-
     }
-
 }

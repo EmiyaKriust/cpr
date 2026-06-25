@@ -367,31 +367,34 @@ public class DataLogic : MonoBehaviour
 
     private void OnCheckPulse()
     {
-        Debug.Log("键盘输入：检查脉搏 - W键");
 
-        // 只有在StudyMode的学习模式下才设置IsCheckPulse
-        if (sceneName == "StudyMode")
-        {
-            if (StudyMode.Instance != null && StudyMode.Instance.StepNumber == 2)
+   
+       if (Input.GetKey(KeyCode.W))
             {
-                IsCheckPulse = true;
-                Debug.Log("IsCheckPulse设置为true");
-            }
-        }
-        else
-        {
-            // 考核模式下设置IsCheckPulse_int
-            if (StudyMode.Instance != null && StudyMode.Instance.isPlayAnim == false)
-            {
-                if (IsCheckPulse_int == 0)
+                // Only set IsCheckPulse in StudyMode
+                if (sceneName == "StudyMode")
                 {
-                    IsCheckPulse_int = 1;
-                    Debug.Log("IsCheckPulse_int设置为1");
+                    if (StudyMode.Instance != null && StudyMode.Instance.StepNumber == 2)
+                    {
+                        IsCheckPulse = true;
+                        Debug.Log("IsCheckPulse set to true");
+                    }
+                }
+                else
+                {
+                    // Set IsCheckPulse_int in assessment mode
+                    if (StudyMode.Instance != null && StudyMode.Instance.isPlayAnim == false)
+                    {
+                        if (IsCheckPulse_int == 0)
+                        {
+                            IsCheckPulse_int = 1;
+                            Debug.Log("IsCheckPulse_int set to 1");
+                        }
+                    }
                 }
             }
-        }
+        
     }
-
     private void OnCheckBreath()
     {
         Debug.Log("键盘输入：检查呼吸 - W键");
@@ -1034,4 +1037,11 @@ public class DataLogic : MonoBehaviour
             Destroy(GameObject.Find("DataLogic"));
         }
     }
+}
+
+internal class temp
+{
+   public int pp;
+
+    public static int PP { get; internal set; }
 }
